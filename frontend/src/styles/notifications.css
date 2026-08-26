@@ -1,0 +1,512 @@
+/* =========================================================
+   TRANG THÔNG BÁO
+   ========================================================= */
+
+.notifications-page {
+  min-height: 100vh;
+  color: #17211e;
+  background: #f3f6f5;
+}
+
+/* =========================================================
+   THANH ĐẦU TRANG
+   ========================================================= */
+
+.notifications-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 82px;
+  padding: 0 max(32px, calc((100% - 1480px) / 2));
+
+  background: rgb(255 255 255 / 97%);
+  border-bottom: 1px solid #dce5e1;
+}
+
+.notifications-header > a {
+  color: #087f67;
+  font-size: 32px;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+
+.notifications-header > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 48px;
+  padding: 0 20px;
+
+  color: #087f67;
+  background: #e9f5f1;
+  border: none;
+  border-radius: 12px;
+
+  font-size: 17px;
+  font-weight: 750;
+
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.notifications-header > button:hover {
+  color: #ffffff;
+  background: #087f67;
+}
+
+/* =========================================================
+   KHUNG NỘI DUNG
+   ========================================================= */
+
+.notifications-container {
+  width: min(1480px, calc(100% - 64px));
+  margin: 34px auto 72px;
+}
+
+/* =========================================================
+   TIÊU ĐỀ TRANG
+   ========================================================= */
+
+.notifications-title-row {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+
+  min-height: 200px;
+  margin-bottom: 28px;
+  padding: 38px 48px;
+
+  overflow: hidden;
+
+  color: #ffffff;
+  background:
+    radial-gradient(
+      circle at 83% 40%,
+      rgb(255 255 255 / 12%) 0 105px,
+      transparent 106px
+    ),
+    radial-gradient(
+      circle at 83% 40%,
+      rgb(255 255 255 / 7%) 0 165px,
+      transparent 166px
+    ),
+    linear-gradient(
+      125deg,
+      #075f4d,
+      #0b9172 58%,
+      #34c9a1
+    );
+
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgb(7 95 77 / 13%);
+}
+
+.notifications-title-row > div {
+  position: relative;
+  z-index: 1;
+}
+
+.notifications-title-row h1 {
+  margin: 0;
+
+  color: #ffffff;
+  font-size: clamp(40px, 4vw, 56px);
+  font-weight: 850;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.notifications-title-row p {
+  margin: 12px 0 0;
+
+  color: rgb(255 255 255 / 88%);
+  font-size: 20px;
+  line-height: 1.5;
+}
+
+.notifications-title-row > button {
+  position: relative;
+  z-index: 1;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 50px;
+  padding: 0 20px;
+
+  color: #087f67;
+  background: #ffffff;
+  border: none;
+  border-radius: 12px;
+
+  font-size: 16px;
+  font-weight: 750;
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.notifications-title-row > button:hover {
+  background: #e9f8f3;
+}
+
+.notifications-title-row > button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+/* =========================================================
+   THÔNG BÁO LỖI / ĐANG TẢI
+   ========================================================= */
+
+.notifications-message {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+
+  color: #b42318;
+  background: #fff3f2;
+  border: 1px solid #ffd3cf;
+  border-radius: 14px;
+
+  font-size: 17px;
+}
+
+.notifications-status {
+  padding: 38px 24px;
+
+  color: #64736d;
+  background: #ffffff;
+  border: 1px solid #dce5e1;
+  border-radius: 18px;
+
+  font-size: 19px;
+  text-align: center;
+}
+
+/* =========================================================
+   KHI KHÔNG CÓ THÔNG BÁO
+   ========================================================= */
+
+.notifications-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 330px;
+  padding: 48px 24px;
+
+  background: #ffffff;
+  border: 1px solid #dce5e1;
+  border-radius: 20px;
+
+  text-align: center;
+}
+
+.notifications-empty > span {
+  font-size: 68px;
+  line-height: 1;
+}
+
+.notifications-empty h2 {
+  margin: 20px 0 8px;
+
+  color: #17211e;
+  font-size: 28px;
+}
+
+.notifications-empty p {
+  margin: 0;
+
+  color: #697771;
+  font-size: 18px;
+}
+
+/* =========================================================
+   DANH SÁCH THÔNG BÁO
+   ========================================================= */
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* =========================================================
+   TỪNG THÔNG BÁO
+   ========================================================= */
+
+.notification-item {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 20px;
+
+  width: 100%;
+  min-height: 112px;
+  padding: 20px 24px;
+
+  color: #17211e;
+  background: #ffffff;
+  border: 1px solid #dce5e1;
+  border-radius: 18px;
+
+  text-align: left;
+
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgb(24 56 47 / 4%);
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.notification-item:hover {
+  background: #fbfefd;
+  border-color: #b9d8ce;
+  box-shadow: 0 10px 24px rgb(24 56 47 / 8%);
+  transform: translateY(-2px);
+}
+
+/* Thông báo chưa đọc có màu nền khác. */
+
+.notification-item.unread {
+  background: #ecf8f4;
+  border-color: #bfe5d8;
+}
+
+.notification-item.unread:hover {
+  background: #e4f5ef;
+}
+
+/* =========================================================
+   ẢNH ĐẠI DIỆN
+   ========================================================= */
+
+.notification-avatar {
+  position: relative;
+
+  display: grid;
+  flex: 0 0 72px;
+  place-items: center;
+
+  width: 72px;
+  height: 72px;
+
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    #07866b,
+    #22b98d
+  );
+  border-radius: 50%;
+
+  font-size: 27px;
+  font-weight: 800;
+}
+
+.notification-avatar > img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Biểu tượng nhỏ: thích, bình luận, theo dõi... */
+
+.notification-type-icon {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+
+  display: grid;
+  place-items: center;
+
+  width: 32px;
+  height: 32px;
+
+  background: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+
+  font-size: 18px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+}
+
+/* =========================================================
+   NỘI DUNG THÔNG BÁO
+   ========================================================= */
+
+.notification-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.notification-content p {
+  margin: 0 0 8px;
+
+  color: #1b2723;
+  font-size: 19px;
+  font-weight: 550;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+.notification-item.unread .notification-content p {
+  font-weight: 750;
+}
+
+.notification-content time {
+  display: block;
+
+  color: #07866b;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Chấm xanh báo chưa đọc. */
+
+.unread-dot {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+
+  background: #07866b;
+  border-radius: 50%;
+
+  box-shadow: 0 0 0 5px rgb(7 134 107 / 10%);
+}
+
+/* =========================================================
+   MÀN HÌNH VỪA
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .notifications-header {
+    min-height: 74px;
+    padding: 0 24px;
+  }
+
+  .notifications-container {
+    width: calc(100% - 40px);
+    margin-top: 24px;
+  }
+
+  .notifications-title-row {
+    min-height: 180px;
+    padding: 32px;
+  }
+
+  .notifications-title-row h1 {
+    font-size: 42px;
+  }
+
+  .notification-item {
+    min-height: 102px;
+    padding: 18px 20px;
+  }
+}
+
+/* =========================================================
+   ĐIỆN THOẠI
+   ========================================================= */
+
+@media (max-width: 600px) {
+  .notifications-header {
+    min-height: 68px;
+    padding: 0 15px;
+  }
+
+  .notifications-header > a {
+    font-size: 22px;
+  }
+
+  .notifications-header > button {
+    min-height: 42px;
+    padding: 0 12px;
+    font-size: 15px;
+  }
+
+  .notifications-container {
+    width: calc(100% - 24px);
+    margin: 16px auto 48px;
+  }
+
+  .notifications-title-row {
+    min-height: auto;
+    align-items: flex-start;
+    flex-direction: column;
+
+    margin-bottom: 18px;
+    padding: 28px 22px;
+
+    border-radius: 18px;
+  }
+
+  .notifications-title-row h1 {
+    font-size: 36px;
+  }
+
+  .notifications-title-row p {
+    font-size: 17px;
+  }
+
+  .notifications-title-row > button {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .notifications-list {
+    gap: 10px;
+  }
+
+  .notification-item {
+    min-height: 92px;
+    gap: 13px;
+    padding: 15px;
+
+    border-radius: 15px;
+  }
+
+  .notification-avatar {
+    flex-basis: 54px;
+    width: 54px;
+    height: 54px;
+
+    font-size: 21px;
+  }
+
+  .notification-type-icon {
+    width: 26px;
+    height: 26px;
+
+    font-size: 15px;
+  }
+
+  .notification-content p {
+    margin-bottom: 5px;
+    font-size: 16px;
+  }
+
+  .notification-content time {
+    font-size: 14px;
+  }
+}
