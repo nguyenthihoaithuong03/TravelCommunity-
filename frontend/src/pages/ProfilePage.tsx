@@ -1,6 +1,5 @@
 import {
   type ChangeEvent,
-  type CSSProperties,
   type FormEvent,
   useEffect,
   useState,
@@ -8,6 +7,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 
 import axiosClient from "../api/axiosClient";
+import "../styles/profile.css";
 
 type Gender = "male" | "female" | "other" | "";
 type TravelStyle = "relaxation" | "exploration" | "adventure" | "";
@@ -277,6 +277,10 @@ function ProfilePage() {
       putUserInForm(response.data.user);
       updateStoredUser(response.data.user);
       setMessage(response.data.message || "Cập nhật hồ sơ thành công");
+
+      window.setTimeout(() => {
+        navigate(`/users/${response.data.user._id}`);
+      }, 1200);
     } catch (error: unknown) {
       setIsError(true);
       setMessage(getErrorMessage(error, "Không thể cập nhật hồ sơ"));
@@ -286,70 +290,70 @@ function ProfilePage() {
   };
 
   if (isLoading) {
-    return <div style={styles.status}>Đang tải hồ sơ...</div>;
+    return <div className="edit-profile-status">Đang tải hồ sơ...</div>;
   }
 
   return (
-    <div style={styles.page}>
-      <header style={styles.header}>
-        <Link to="/home" style={styles.brand}>Travel Community</Link>
-        <Link to="/home" style={styles.backLink}>Quay lại trang chủ</Link>
+    <div className="edit-profile-page">
+      <header className="edit-profile-header">
+        <Link to="/home" className="edit-profile-brand">Travel Community</Link>
+        <Link to="/home" className="edit-profile-back-link">Quay lại trang chủ</Link>
       </header>
 
-      <main style={styles.container}>
-        <section style={styles.card}>
-          <div style={styles.titleBlock}>
-            <div style={styles.avatarArea}>
-              <div style={styles.avatar}>
+      <main className="edit-profile-container">
+        <section className="edit-profile-card">
+          <div className="edit-profile-title-block">
+            <div className="edit-profile-avatar-area">
+              <div className="edit-profile-avatar">
                 {form.avatarUrl ? (
                   <img
                     src={form.avatarUrl}
                     alt="Ảnh đại diện"
-                    style={styles.avatarImage}
+                    className="edit-profile-avatar-image"
                   />
                 ) : (
                   <span>{form.fullName.trim().charAt(0).toUpperCase() || "U"}</span>
                 )}
               </div>
 
-              <label style={styles.avatarButton}>
+              <label className="edit-profile-avatar-button">
                 {isUploading ? "Đang tải..." : "Đổi ảnh"}
                 <input
                   type="file"
                   accept="image/*"
                   disabled={isUploading}
                   onChange={handleAvatarChange}
-                  style={styles.hiddenInput}
+                  className="edit-profile-hidden-input"
                 />
               </label>
             </div>
 
             <div>
-              <h1 style={styles.title}>Chỉnh sửa hồ sơ</h1>
-              <p style={styles.subtitle}>
+              <h1 className="edit-profile-title">Chỉnh sửa hồ sơ</h1>
+              <p className="edit-profile-subtitle">
                 Cập nhật thông tin để mọi người hiểu hơn về bạn.
               </p>
             </div>
           </div>
 
           {message && (
-            <div style={{ ...styles.message, ...(isError ? styles.error : styles.success) }}>
+            <div className={`edit-profile-message ${isError ? "error" : "success"}`}>
               {message}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <div style={styles.sectionHeading}>
+          <form onSubmit={handleSubmit} className="edit-profile-form">
+            <div className="edit-profile-section-heading">
               <div>
-                <h2 style={styles.sectionTitle}>Thông tin cá nhân</h2>
-                <p style={styles.sectionDescription}>Những thông tin cơ bản trên hồ sơ của bạn</p>
+                <h2 className="edit-profile-section-title">Thông tin cá nhân</h2>
+                <p className="edit-profile-section-description">Những thông tin cơ bản trên hồ sơ của bạn</p>
               </div>
             </div>
-            <div style={styles.twoColumns}>
-              <label style={styles.field}>
+            <div className="edit-profile-fields-grid">
+              <label className="edit-profile-field">
                 <span>Họ và tên *</span>
                 <input
-                  style={styles.input}
+                  className="edit-profile-input"
                   name="fullName"
                   value={form.fullName}
                   maxLength={100}
@@ -358,15 +362,15 @@ function ProfilePage() {
                 />
               </label>
 
-              <label style={styles.field}>
+              <label className="edit-profile-field">
                 <span>Email</span>
-                <input style={styles.inputDisabled} value={email} disabled />
+                <input className="edit-profile-input disabled" value={email} disabled />
               </label>
 
-              <label style={styles.field}>
+              <label className="edit-profile-field">
                 <span>Ngày sinh</span>
                 <input
-                  style={styles.input}
+                  className="edit-profile-input"
                   type="date"
                   name="dateOfBirth"
                   value={form.dateOfBirth}
@@ -375,9 +379,9 @@ function ProfilePage() {
                 />
               </label>
 
-              <label style={styles.field}>
+              <label className="edit-profile-field">
                 <span>Giới tính</span>
-                <select style={styles.input} name="gender" value={form.gender} onChange={handleChange}>
+                <select className="edit-profile-input" name="gender" value={form.gender} onChange={handleChange}>
                   <option value="">Chưa chọn</option>
                   <option value="female">Nữ</option>
                   <option value="male">Nam</option>
@@ -385,10 +389,10 @@ function ProfilePage() {
                 </select>
               </label>
 
-              <label style={styles.field}>
+              <label className="edit-profile-field">
                 <span>Quê quán</span>
                 <input
-                  style={styles.input}
+                  className="edit-profile-input"
                   name="hometown"
                   value={form.hometown}
                   maxLength={100}
@@ -397,9 +401,9 @@ function ProfilePage() {
                 />
               </label>
 
-              <label style={styles.field}>
+              <label className="edit-profile-field">
                 <span>Phong cách du lịch</span>
-                <select style={styles.input} name="travelStyle" value={form.travelStyle} onChange={handleChange}>
+                <select className="edit-profile-input" name="travelStyle" value={form.travelStyle} onChange={handleChange}>
                   <option value="">Chưa chọn</option>
                   <option value="relaxation">Nghỉ dưỡng</option>
                   <option value="exploration">Khám phá</option>
@@ -407,9 +411,9 @@ function ProfilePage() {
                 </select>
               </label>
 
-              <label style={styles.field}>
+              <label className="edit-profile-field">
                 <span>Mức ngân sách</span>
-                <select style={styles.input} name="budgetLevel" value={form.budgetLevel} onChange={handleChange}>
+                <select className="edit-profile-input" name="budgetLevel" value={form.budgetLevel} onChange={handleChange}>
                   <option value="">Chưa chọn</option>
                   <option value="low">Tiết kiệm</option>
                   <option value="medium">Trung bình</option>
@@ -419,16 +423,16 @@ function ProfilePage() {
 
             </div>
 
-            <div style={styles.sectionDivider} />
+            <div className="edit-profile-section-divider" />
 
-            <div style={styles.sectionHeading}>
+            <div className="edit-profile-section-heading">
               <div>
-                <h2 style={styles.sectionTitle}>Sở thích du lịch</h2>
-                <p style={styles.sectionDescription}>Chọn một hoặc nhiều sở thích phù hợp với bạn</p>
+                <h2 className="edit-profile-section-title">Sở thích du lịch</h2>
+                <p className="edit-profile-section-description">Chọn một hoặc nhiều sở thích phù hợp với bạn</p>
               </div>
             </div>
 
-            <div style={styles.interestList}>
+            <div className="edit-profile-interest-list">
               {INTEREST_OPTIONS.map((interest) => {
                 const isSelected = form.travelInterests.includes(interest);
 
@@ -438,30 +442,27 @@ function ProfilePage() {
                     type="button"
                     aria-pressed={isSelected}
                     onClick={() => handleToggleInterest(interest)}
-                    style={{
-                      ...styles.interestChip,
-                      ...(isSelected ? styles.interestChipSelected : {}),
-                    }}
+                    className={`edit-profile-interest-chip ${isSelected ? "selected" : ""}`}
                   >
                     <span>{interest}</span>
-                    {isSelected && <span style={styles.checkMark}>✓</span>}
+                    {isSelected && <span className="edit-profile-check-mark">✓</span>}
                   </button>
                 );
               })}
             </div>
 
-            <div style={styles.sectionDivider} />
+            <div className="edit-profile-section-divider" />
 
-            <div style={styles.sectionHeading}>
+            <div className="edit-profile-section-heading">
               <div>
-                <h2 style={styles.sectionTitle}>Giới thiệu về bạn</h2>
-                <p style={styles.sectionDescription}>Chia sẻ ngắn gọn để kết nối với những người cùng sở thích</p>
+                <h2 className="edit-profile-section-title">Giới thiệu về bạn</h2>
+                <p className="edit-profile-section-description">Chia sẻ ngắn gọn để kết nối với những người cùng sở thích</p>
               </div>
             </div>
 
-            <label style={styles.field}>
+            <label className="edit-profile-field">
               <textarea
-                style={styles.textarea}
+                className="edit-profile-textarea"
                 name="bio"
                 value={form.bio}
                 maxLength={500}
@@ -469,18 +470,15 @@ function ProfilePage() {
                 placeholder="Chia sẻ đôi chút về bạn..."
                 onChange={handleChange}
               />
-              <small style={styles.hint}>{form.bio.length}/500 ký tự</small>
+              <small className="edit-profile-hint">{form.bio.length}/500 ký tự</small>
             </label>
 
-            <div style={styles.actions}>
-              <Link to="/home" style={styles.cancelButton}>Hủy</Link>
+            <div className="edit-profile-actions">
+              <Link to="/home" className="edit-profile-cancel-button">Hủy</Link>
               <button
                 type="submit"
                 disabled={isSaving || isUploading}
-                style={{
-                  ...styles.saveButton,
-                  ...((isSaving || isUploading) ? styles.disabledButton : {}),
-                }}
+                className="edit-profile-save-button"
               >
                 {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
               </button>
@@ -491,45 +489,5 @@ function ProfilePage() {
     </div>
   );
 }
-
-const styles: Record<string, CSSProperties> = {
-  page: { minHeight: "100vh", background: "linear-gradient(145deg, #f1f8f5 0%, #f8faf9 55%, #edf7f3 100%)", color: "#24332e", fontSize: 18 },
-  header: { minHeight: 64, padding: "0 clamp(20px, 3vw, 56px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, background: "#ffffff", borderBottom: "1px solid #dce7e3" },
-  brand: { color: "#087f5b", fontSize: 24, fontWeight: 800, textDecoration: "none" },
-  backLink: { color: "#3d5a50", fontSize: 18, fontWeight: 700, textDecoration: "none" },
-  container: { width: "calc(100% - clamp(28px, 3vw, 52px))", maxWidth: 1600, margin: "24px auto", paddingBottom: 32 },
-  card: { background: "rgba(255, 255, 255, 0.98)", border: "1px solid #dce8e4", borderRadius: 18, boxShadow: "0 12px 36px rgba(31, 73, 59, 0.08)", padding: "clamp(24px, 2.5vw, 40px)" },
-  titleBlock: { display: "flex", justifyContent: "flex-start", alignItems: "center", flexWrap: "wrap", gap: 22, padding: "4px 0 26px", borderBottom: "1px solid #e5eeeb" },
-  title: { margin: "0 0 7px", fontSize: "clamp(32px, 3vw, 40px)", letterSpacing: "-0.02em" },
-  subtitle: { margin: 0, color: "#6a7e77", fontSize: 18 },
-  avatarArea: { display: "flex", alignItems: "center", gap: 12 },
-  avatar: { width: 80, height: 80, borderRadius: "50%", overflow: "hidden", background: "#d7f1e8", color: "#087f5b", display: "grid", placeItems: "center", fontSize: 32, fontWeight: 800, border: "3px solid #bfe7da" },
-  avatarImage: { width: "100%", height: "100%", objectFit: "cover" },
-  avatarButton: { padding: "10px 15px", borderRadius: 8, background: "#e6f5ef", color: "#087f5b", fontSize: 17, fontWeight: 700, cursor: "pointer" },
-  hiddenInput: { display: "none" },
-  message: { marginTop: 22, padding: "12px 15px", borderRadius: 9, fontWeight: 600 },
-  success: { background: "#e8f7ef", color: "#167346", border: "1px solid #bde7cf" },
-  error: { background: "#fff0f0", color: "#b42318", border: "1px solid #f4c7c7" },
-  form: { display: "grid", gap: 20, marginTop: 26 },
-  sectionHeading: { display: "flex", alignItems: "stretch", paddingLeft: 14, borderLeft: "4px solid #0a8f65" },
-  sectionTitle: { margin: 0, color: "#203b32", fontSize: 24, letterSpacing: "-0.01em" },
-  sectionDescription: { margin: "5px 0 0", color: "#788a84", fontSize: 16 },
-  sectionDivider: { height: 1, background: "#e7efec", margin: "3px 0" },
-  twoColumns: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(400px, 100%), 1fr))", gap: 20 },
-  field: { display: "grid", gap: 9, color: "#304b42", fontSize: 18, fontWeight: 700 },
-  input: { width: "100%", boxSizing: "border-box", minHeight: 58, border: "1px solid #cbdad5", borderRadius: 10, padding: "13px 16px", background: "#ffffff", color: "#24332e", font: "inherit", fontSize: 18, outlineColor: "#22a77a" },
-  inputDisabled: { width: "100%", boxSizing: "border-box", minHeight: 58, border: "1px solid #dce5e2", borderRadius: 10, padding: "13px 16px", background: "#f1f4f3", color: "#71817b", font: "inherit", fontSize: 18 },
-  textarea: { width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid #cbdad5", borderRadius: 10, padding: "14px 16px", background: "#ffffff", color: "#24332e", font: "inherit", fontSize: 18, lineHeight: 1.6, outlineColor: "#22a77a" },
-  hint: { color: "#768982", fontWeight: 400 },
-  interestList: { display: "flex", flexWrap: "wrap", gap: 12 },
-  interestChip: { minHeight: 48, display: "inline-flex", alignItems: "center", gap: 9, padding: "10px 18px", borderRadius: 999, border: "1px solid #cdded8", background: "#f7faf9", color: "#38534a", font: "inherit", fontSize: 18, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" },
-  interestChipSelected: { borderColor: "#0a8f65", background: "#e0f4ed", color: "#067654", boxShadow: "0 3px 10px rgba(10, 143, 101, 0.10)" },
-  checkMark: { width: 20, height: 20, display: "grid", placeItems: "center", borderRadius: "50%", background: "#0a8f65", color: "#ffffff", fontSize: 12 },
-  actions: { display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, paddingTop: 4 },
-  cancelButton: { padding: "12px 20px", borderRadius: 9, color: "#40564e", background: "#edf2f0", fontSize: 18, fontWeight: 700, textDecoration: "none" },
-  saveButton: { border: 0, borderRadius: 9, padding: "13px 22px", background: "#0a8f65", color: "#ffffff", font: "inherit", fontSize: 18, fontWeight: 800, cursor: "pointer" },
-  disabledButton: { opacity: 0.6, cursor: "not-allowed" },
-  status: { minHeight: "100vh", display: "grid", placeItems: "center", background: "#f4f8f7", color: "#526b62", fontSize: 18 },
-};
 
 export default ProfilePage;
