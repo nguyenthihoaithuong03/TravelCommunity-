@@ -1,756 +1,535 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  type ChangeEvent,
+  type CSSProperties,
+  type FormEvent,
+  useEffect,
+  useState,
+} from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import axiosClient from "../api/axiosClient";
-import CommentSection from "../components/CommentSection";
-import type { PostData } from "../components/CreatePostModal";
-import "../styles/publicProfile.css";
 
-interface PublicUserData {
+type Gender = "male" | "female" | "other" | "";
+type TravelStyle = "relaxation" | "exploration" | "adventure" | "";
+type BudgetLevel = "low" | "medium" | "high" | "";
+
+interface UserData {
   _id: string;
   fullName: string;
+  email: string;
   avatarUrl?: string;
-  bio?: string;
+  dateOfBirth?: string | null;
+  gender?: Gender | null;
   hometown?: string;
+  bio?: string;
   travelInterests?: string[];
-  travelStyle?: string;
-  followersCount: number;
-  followingCount: number;
-  isFollowing: boolean;
-  createdAt: string;
+  travelStyle?: TravelStyle | null;
+  budgetLevel?: BudgetLevel | null;
 }
 
-interface UserProfileResponse {
+interface UserResponse {
   success: boolean;
-  user: PublicUserData;
+  message?: string;
+  user: UserData;
 }
 
-interface FollowResponse {
-  success: boolean;
-  message: string;
-  isFollowing: boolean;
-  followersCount: number;
+interface AvatarResponse extends UserResponse {
+  avatarUrl: string;
 }
 
-type ProfilePostData = PostData & {
-  commentsCount?: number;
-  sharesCount?: number;
+interface ProfileForm {
+  fullName: string;
+  dateOfBirth: string;
+  gender: Gender;
+  hometown: string;
+  bio: string;
+  travelInterests: string[];
+  travelStyle: TravelStyle;
+  budgetLevel: BudgetLevel;
+  avatarUrl: string;
+}
+
+const emptyForm: ProfileForm = {
+  fullName: "",
+  dateOfBirth: "",
+  gender: "",
+  hometown: "",
+  bio: "",
+  travelInterests: [],
+  travelStyle: "",
+  budgetLevel: "",
+  avatarUrl: "",
 };
 
-interface UserPostsResponse {
-  success: boolean;
-  posts: ProfilePostData[];
+const INTEREST_OPTIONS = [
+  "Biển",
+  "Núi",
+  "Ẩm thực",
+  "Chụp ảnh",
+  "Phượt",
+  "Cắm trại",
+  "Văn hóa",
+  "Nghỉ dưỡng",
+] as const;
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error
+  ) {
+    const response = (error as {
+      response?: { data?: { message?: string }; status?: number };
+    }).response;
+
+    return response?.data?.message || fallback;
+  }
+
+  return fallback;
 }
 
-interface ConnectionUser {
-  _id: string;
-  fullName: string;
-  avatarUrl?: string;
-  bio?: string;
-  hometown?: string;
+function toDateInputValue(value?: string | null) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toISOString().slice(0, 10);
 }
 
-interface ConnectionsResponse {
-  success: boolean;
-  followers: ConnectionUser[];
-  following: ConnectionUser[];
-}
-
-interface StoredUserData {
-  _id?: string;
-  fullName?: string;
-  avatarUrl?: string;
-}
-
-interface LikePostResponse {
-  success: boolean;
-  likes: string[];
-}
-
-interface SharePostResponse {
-  success: boolean;
-  sharesCount: number;
-}
-
-function PublicProfilePage() {
-  const { userId } = useParams<{ userId: string }>();
+function ProfilePage() {
   const navigate = useNavigate();
-
-  const [profile, setProfile] =
-    useState<PublicUserData | null>(null);
+  const [form, setForm] = useState<ProfileForm>(emptyForm);
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
-  const [posts, setPosts] =
-    useState<ProfilePostData[]>([]);
-  const [isLoadingPosts, setIsLoadingPosts] =
-    useState(true);
-  const [postsMessage, setPostsMessage] =
-    useState("");
-  const [connectionType, setConnectionType] =
-    useState<"followers" | "following" | null>(null);
-  const [connections, setConnections] =
-    useState<ConnectionUser[]>([]);
-  const [isLoadingConnections, setIsLoadingConnections] =
-    useState(false);
-  const [connectionsMessage, setConnectionsMessage] =
-    useState("");
-  const [likingPostId, setLikingPostId] =
-    useState<string | null>(null);
-  const [openCommentsPostId, setOpenCommentsPostId] =
-    useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
 
-  const storedUser = localStorage.getItem("user");
-  const currentUser: StoredUserData | null = storedUser
-    ? JSON.parse(storedUser)
-    : null;
+  const updateStoredUser = (user: UserData) => {
+    const storedUser = localStorage.getItem("user");
+    let previousUser: Record<string, unknown> = {};
 
-  const isOwnProfile = currentUser?._id === userId;
+    try {
+      previousUser = storedUser ? JSON.parse(storedUser) : {};
+    } catch {
+      previousUser = {};
+    }
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        ...previousUser,
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        avatarUrl: user.avatarUrl || "",
+      })
+    );
+  };
+
+  const putUserInForm = (user: UserData) => {
+    setEmail(user.email || "");
+    setForm({
+      fullName: user.fullName || "",
+      dateOfBirth: toDateInputValue(user.dateOfBirth),
+      gender: user.gender || "",
+      hometown: user.hometown || "",
+      bio: user.bio || "",
+      travelInterests: user.travelInterests || [],
+      travelStyle: user.travelStyle || "",
+      budgetLevel: user.budgetLevel || "",
+      avatarUrl: user.avatarUrl || "",
+    });
+  };
 
   useEffect(() => {
-    const getProfile = async () => {
-      if (!userId) {
-        setMessage("Mã người dùng không hợp lệ");
-        setIsLoading(false);
-        return;
-      }
-
+    const loadProfile = async () => {
       try {
         const response =
-          await axiosClient.get<UserProfileResponse>(
-            `/users/${userId}`
-          );
+          await axiosClient.get<UserResponse>("/users/me");
 
-        setProfile(response.data.user);
-      } catch (error: any) {
-        setMessage(
-          error.response?.data?.message ||
-            "Không thể lấy hồ sơ người dùng"
-        );
+        putUserInForm(response.data.user);
+      } catch (error: unknown) {
+        const status = (error as { response?: { status?: number } })
+          ?.response?.status;
 
-        if (error.response?.status === 401) {
+        if (status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
-          navigate("/login");
+          navigate("/login", { replace: true });
+          return;
         }
+
+        setIsError(true);
+        setMessage(
+          getErrorMessage(error, "Không thể tải hồ sơ cá nhân")
+        );
       } finally {
         setIsLoading(false);
       }
     };
 
-    getProfile();
-  }, [navigate, userId]);
+    loadProfile();
+  }, [navigate]);
 
-  useEffect(() => {
-    const getUserPosts = async () => {
-      if (!userId) {
-        setIsLoadingPosts(false);
-        return;
-      }
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+    setMessage("");
+  };
 
-      try {
-        const response =
-          await axiosClient.get<UserPostsResponse>(
-            `/posts/user/${userId}`
-          );
+  const handleAvatarChange = async (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
 
-        setPosts(
-          [...response.data.posts].sort(
-            (firstPost, secondPost) =>
-              new Date(secondPost.createdAt).getTime() -
-              new Date(firstPost.createdAt).getTime()
-          )
-        );
-      } catch (error: any) {
-        setPostsMessage(
-          error.response?.data?.message ||
-            "Không thể lấy bài viết"
-        );
-      } finally {
-        setIsLoadingPosts(false);
-      }
-    };
+    if (!file) return;
 
-    getUserPosts();
-  }, [userId]);
+    if (!file.type.startsWith("image/")) {
+      setIsError(true);
+      setMessage("Vui lòng chọn một tệp hình ảnh");
+      return;
+    }
 
-  const handleToggleFollow = async () => {
-    if (!userId || isFollowing) {
+    if (file.size > 5 * 1024 * 1024) {
+      setIsError(true);
+      setMessage("Ảnh đại diện không được vượt quá 5 MB");
       return;
     }
 
     try {
-      setIsFollowing(true);
+      setIsUploading(true);
+      setIsError(false);
       setMessage("");
 
-      const response =
-        await axiosClient.patch<FollowResponse>(
-          `/users/${userId}/follow`
-        );
+      const data = new FormData();
+      data.append("avatar", file);
 
-      setProfile((currentProfile) =>
-        currentProfile
-          ? {
-              ...currentProfile,
-              isFollowing: response.data.isFollowing,
-              followersCount:
-                response.data.followersCount,
-            }
-          : currentProfile
+      const response = await axiosClient.post<AvatarResponse>(
+        "/users/avatar",
+        data
       );
 
-      setMessage(response.data.message);
-
-      window.setTimeout(() => {
-        setMessage("");
-      }, 2000);
-    } catch (error: any) {
-      setMessage(
-        error.response?.data?.message ||
-          "Không thể thực hiện theo dõi"
-      );
+      setForm((current) => ({
+        ...current,
+        avatarUrl: response.data.avatarUrl,
+      }));
+      updateStoredUser(response.data.user);
+      setMessage(response.data.message || "Cập nhật ảnh đại diện thành công");
+    } catch (error: unknown) {
+      setIsError(true);
+      setMessage(getErrorMessage(error, "Không thể tải ảnh đại diện"));
     } finally {
-      setIsFollowing(false);
+      setIsUploading(false);
     }
   };
 
-  const handleOpenConnections = async (
-    type: "followers" | "following"
-  ) => {
-    if (!userId) {
+  const handleToggleInterest = (interest: string) => {
+    setForm((current) => ({
+      ...current,
+      travelInterests: current.travelInterests.includes(interest)
+        ? current.travelInterests.filter((item) => item !== interest)
+        : [...current.travelInterests, interest],
+    }));
+    setMessage("");
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (form.fullName.trim().length < 2) {
+      setIsError(true);
+      setMessage("Họ và tên phải có ít nhất 2 ký tự");
+      return;
+    }
+
+    if (form.bio.trim().length > 500) {
+      setIsError(true);
+      setMessage("Giới thiệu không được vượt quá 500 ký tự");
       return;
     }
 
     try {
-      setConnectionType(type);
-      setConnections([]);
-      setConnectionsMessage("");
-      setIsLoadingConnections(true);
+      setIsSaving(true);
+      setIsError(false);
+      setMessage("");
 
-      const response =
-        await axiosClient.get<ConnectionsResponse>(
-          `/users/${userId}/connections`
-        );
-
-      setConnections(response.data[type]);
-    } catch (error: any) {
-      setConnectionsMessage(
-        error.response?.data?.message ||
-          "Không thể lấy danh sách theo dõi"
+      const response = await axiosClient.put<UserResponse>(
+        "/users/me",
+        {
+          fullName: form.fullName.trim(),
+          dateOfBirth: form.dateOfBirth,
+          gender: form.gender,
+          hometown: form.hometown.trim(),
+          bio: form.bio.trim(),
+          travelInterests: form.travelInterests,
+          travelStyle: form.travelStyle,
+          budgetLevel: form.budgetLevel,
+          avatarUrl: form.avatarUrl,
+        }
       );
+
+      putUserInForm(response.data.user);
+      updateStoredUser(response.data.user);
+      setMessage(response.data.message || "Cập nhật hồ sơ thành công");
+    } catch (error: unknown) {
+      setIsError(true);
+      setMessage(getErrorMessage(error, "Không thể cập nhật hồ sơ"));
     } finally {
-      setIsLoadingConnections(false);
-    }
-  };
-
-  const handleCloseConnections = () => {
-    setConnectionType(null);
-    setConnections([]);
-    setConnectionsMessage("");
-  };
-
-  const getFirstLetter = (fullName: string) => {
-    return fullName.trim().charAt(0).toUpperCase() || "U";
-  };
-
-  const hasLikedPost = (post: ProfilePostData) => {
-    if (!currentUser?._id) {
-      return false;
-    }
-
-    return post.likes.some(
-      (likedUserId) => likedUserId === currentUser._id
-    );
-  };
-
-  const handleToggleLikePost = async (postId: string) => {
-    try {
-      setLikingPostId(postId);
-
-      const response =
-        await axiosClient.patch<LikePostResponse>(
-          `/posts/${postId}/like`
-        );
-
-      setPosts((currentPosts) =>
-        currentPosts.map((post) =>
-          post._id === postId
-            ? { ...post, likes: response.data.likes }
-            : post
-        )
-      );
-    } catch (error: any) {
-      setPostsMessage(
-        error.response?.data?.message ||
-          "Không thể thích bài viết"
-      );
-    } finally {
-      setLikingPostId(null);
-    }
-  };
-
-  const handleCommentsCountChange = (
-    postId: string,
-    count: number
-  ) => {
-    setPosts((currentPosts) =>
-      currentPosts.map((post) =>
-        post._id === postId
-          ? { ...post, commentsCount: count }
-          : post
-      )
-    );
-  };
-
-  const handleSharePost = async (post: ProfilePostData) => {
-    const postUrl =
-      `${window.location.origin}/home?post=${post._id}`;
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `Bài viết của ${post.author.fullName}`,
-          text: post.content,
-          url: postUrl,
-        });
-      } else {
-        await navigator.clipboard.writeText(postUrl);
-        window.alert("Đã sao chép đường dẫn bài viết");
-      }
-
-      const response =
-        await axiosClient.patch<SharePostResponse>(
-          `/posts/${post._id}/share`
-        );
-
-      setPosts((currentPosts) =>
-        currentPosts.map((currentPost) =>
-          currentPost._id === post._id
-            ? {
-                ...currentPost,
-                sharesCount: response.data.sharesCount,
-              }
-            : currentPost
-        )
-      );
-    } catch (error: any) {
-      if (error?.name !== "AbortError") {
-        setPostsMessage(
-          error.response?.data?.message ||
-            "Không thể chia sẻ bài viết"
-        );
-      }
+      setIsSaving(false);
     }
   };
 
   if (isLoading) {
-    return (
-      <div className="public-profile-status">
-        Đang tải hồ sơ...
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="public-profile-status">
-        <p>{message || "Không tìm thấy người dùng"}</p>
-        <Link to="/home">Quay lại trang chủ</Link>
-      </div>
-    );
+    return <div style={styles.status}>Đang tải hồ sơ...</div>;
   }
 
   return (
-    <div className="public-profile-page">
-      <header className="public-profile-header">
-        <Link className="public-profile-brand" to="/home">
-          Travel Community
-        </Link>
-
-        <Link className="back-home-link" to="/home">
-          ← Trang chủ
-        </Link>
+    <div style={styles.page}>
+      <header style={styles.header}>
+        <Link to="/home" style={styles.brand}>Travel Community</Link>
+        <Link to="/home" style={styles.backLink}>Quay lại trang chủ</Link>
       </header>
 
-      <main className="public-profile-container">
-        <section className="public-profile-cover">
-          <div className="public-profile-avatar">
-            {profile.avatarUrl ? (
-              <img
-                src={profile.avatarUrl}
-                alt={`Ảnh đại diện của ${profile.fullName}`}
-              />
-            ) : (
-              getFirstLetter(profile.fullName)
-            )}
-          </div>
-        </section>
-
-        <section className="public-profile-summary">
-          <div>
-            <h1>{profile.fullName}</h1>
-
-            <div className="public-profile-counts">
-              <button
-                type="button"
-                onClick={() =>
-                  handleOpenConnections("followers")
-                }
-              >
-                <strong>{profile.followersCount}</strong>{" "}
-                người theo dõi
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  handleOpenConnections("following")
-                }
-              >
-                <strong>{profile.followingCount}</strong>{" "}
-                đang theo dõi
-              </button>
-            </div>
-          </div>
-
-          {isOwnProfile ? (
-            <button
-              type="button"
-              onClick={() => navigate("/profile")}
-            >
-              Chỉnh sửa hồ sơ
-            </button>
-          ) : (
-            <button
-              className={
-                profile.isFollowing
-                  ? "follow-button following"
-                  : "follow-button"
-              }
-              type="button"
-              disabled={isFollowing}
-              onClick={handleToggleFollow}
-            >
-              {isFollowing
-                ? "Đang xử lý..."
-                : profile.isFollowing
-                  ? "Đang theo dõi"
-                  : "+ Theo dõi"}
-            </button>
-          )}
-        </section>
-
-        {message && (
-          <div className="public-profile-message">
-            {message}
-          </div>
-        )}
-
-        <nav
-          className="public-profile-tabs"
-          aria-label="Các phần của trang cá nhân"
-        >
-          <a className="active" href="#profile-posts">
-            Bài viết
-          </a>
-          <a href="#profile-about">Giới thiệu</a>
-          <a href="#profile-interests">Sở thích</a>
-        </nav>
-
-        <div className="public-profile-body">
-        <section className="public-profile-grid">
-          <article
-            className="public-profile-card"
-            id="profile-about"
-          >
-            <h2>Giới thiệu</h2>
-
-            <p>
-              {profile.bio ||
-                "Người dùng chưa thêm phần giới thiệu."}
-            </p>
-
-            {profile.hometown && (
-              <p>🏠 Đến từ {profile.hometown}</p>
-            )}
-
-            {profile.travelStyle && (
-              <p>🎒 Phong cách: {profile.travelStyle}</p>
-            )}
-
-            <p>
-              📅 Tham gia từ{" "}
-              {new Date(profile.createdAt).toLocaleDateString(
-                "vi-VN"
-              )}
-            </p>
-          </article>
-
-          <article
-            className="public-profile-card"
-            id="profile-interests"
-          >
-            <h2>Sở thích du lịch</h2>
-
-            {profile.travelInterests?.length ? (
-              <div className="travel-interest-list">
-                {profile.travelInterests.map((interest) => (
-                  <span key={interest}>{interest}</span>
-                ))}
+      <main style={styles.container}>
+        <section style={styles.card}>
+          <div style={styles.titleBlock}>
+            <div style={styles.avatarArea}>
+              <div style={styles.avatar}>
+                {form.avatarUrl ? (
+                  <img
+                    src={form.avatarUrl}
+                    alt="Ảnh đại diện"
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <span>{form.fullName.trim().charAt(0).toUpperCase() || "U"}</span>
+                )}
               </div>
-            ) : (
-              <p>Chưa cập nhật sở thích du lịch.</p>
-            )}
-          </article>
-        </section>
 
-        <section
-          className="public-profile-posts"
-          id="profile-posts"
-        >
-          <h2>Bài viết của {profile.fullName}</h2>
-
-          {isLoadingPosts ? (
-            <div className="profile-post-status">
-              Đang tải bài viết...
+              <label style={styles.avatarButton}>
+                {isUploading ? "Đang tải..." : "Đổi ảnh"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={isUploading}
+                  onChange={handleAvatarChange}
+                  style={styles.hiddenInput}
+                />
+              </label>
             </div>
-          ) : postsMessage ? (
-            <div className="profile-post-status error">
-              {postsMessage}
+
+            <div>
+              <h1 style={styles.title}>Chỉnh sửa hồ sơ</h1>
+              <p style={styles.subtitle}>
+                Cập nhật thông tin để mọi người hiểu hơn về bạn.
+              </p>
             </div>
-          ) : posts.length === 0 ? (
-            <div className="profile-post-status">
-              Người dùng chưa có bài viết nào.
-            </div>
-          ) : (
-            <div className="public-profile-post-list">
-              {posts.map((post) => (
-                <article
-                  className="public-profile-post-card"
-                  key={post._id}
-                >
-                  <div className="profile-post-header">
-                    <div className="profile-post-avatar">
-                      {profile.avatarUrl ? (
-                        <img
-                          src={profile.avatarUrl}
-                          alt={profile.fullName}
-                        />
-                      ) : (
-                        getFirstLetter(profile.fullName)
-                      )}
-                    </div>
+          </div>
 
-                    <div>
-                      <strong>{profile.fullName}</strong>
-                      <p>
-                        {new Date(
-                          post.createdAt
-                        ).toLocaleString("vi-VN")}
-
-                        {post.location && (
-                          <> {" · "}📍 {post.location}</>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  {post.content && (
-                    <p className="profile-post-content">
-                      {post.content}
-                    </p>
-                  )}
-
-                  {post.imageUrls?.length > 0 && (
-                    <div
-                      className={
-                        post.imageUrls.length === 1
-                          ? "profile-post-images one"
-                          : "profile-post-images many"
-                      }
-                    >
-                      {post.imageUrls.map(
-                        (imageUrl, index) => (
-                          <img
-                            key={`${post._id}-${index}`}
-                            src={imageUrl}
-                            alt={`Ảnh bài viết ${index + 1}`}
-                          />
-                        )
-                      )}
-                    </div>
-                  )}
-
-                  <div className="profile-post-actions">
-                    <button
-                      className={
-                        hasLikedPost(post)
-                          ? "profile-post-action liked"
-                          : "profile-post-action"
-                      }
-                      type="button"
-                      aria-label="Thích bài viết"
-                      title="Thích"
-                      disabled={likingPostId === post._id}
-                      onClick={() =>
-                        handleToggleLikePost(post._id)
-                      }
-                    >
-                      <span>👍</span>
-                      {likingPostId === post._id
-                        ? "…"
-                        : post.likes?.length ?? 0}
-                    </button>
-
-                    <button
-                      className="profile-post-action"
-                      type="button"
-                      aria-label="Mở bình luận"
-                      title="Bình luận"
-                      onClick={() => {
-                        const willOpen =
-                          openCommentsPostId !== post._id;
-
-                        setOpenCommentsPostId(
-                          willOpen ? post._id : null
-                        );
-
-                        if (willOpen) {
-                          window.setTimeout(() => {
-                            document
-                              .getElementById(
-                                `comment-${post._id}`
-                              )
-                              ?.focus();
-                          }, 0);
-                        }
-                      }}
-                    >
-                      <span>💬</span>
-                      {post.commentsCount ?? 0}
-                    </button>
-
-                    <button
-                      className="profile-post-action"
-                      type="button"
-                      aria-label="Chia sẻ bài viết"
-                      title="Chia sẻ"
-                      onClick={() => handleSharePost(post)}
-                    >
-                      <span>↗</span>
-                      {post.sharesCount ?? 0}
-                    </button>
-                  </div>
-
-                  {currentUser?._id &&
-                    openCommentsPostId === post._id && (
-                      <div className="profile-post-comments">
-                        <CommentSection
-                          postId={post._id}
-                          currentUserId={currentUser._id}
-                          currentUserName={
-                            currentUser.fullName || "Người dùng"
-                          }
-                          currentUserAvatar={
-                            currentUser.avatarUrl
-                          }
-                          onCommentsCountChange={(count) =>
-                            handleCommentsCountChange(
-                              post._id,
-                              count
-                            )
-                          }
-                        />
-                      </div>
-                    )}
-                </article>
-              ))}
+          {message && (
+            <div style={{ ...styles.message, ...(isError ? styles.error : styles.success) }}>
+              {message}
             </div>
           )}
-        </section>
-        </div>
-      </main>
 
-      {connectionType && (
-        <div
-          className="connections-overlay"
-          onMouseDown={handleCloseConnections}
-        >
-          <section
-            className="connections-modal"
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <header className="connections-header">
-              <h2>
-                {connectionType === "followers"
-                  ? "Người theo dõi"
-                  : "Đang theo dõi"}
-              </h2>
-
-              <button
-                type="button"
-                aria-label="Đóng"
-                onClick={handleCloseConnections}
-              >
-                ×
-              </button>
-            </header>
-
-            <div className="connections-list">
-              {isLoadingConnections ? (
-                <p className="connections-status">
-                  Đang tải danh sách...
-                </p>
-              ) : connectionsMessage ? (
-                <p className="connections-status error">
-                  {connectionsMessage}
-                </p>
-              ) : connections.length === 0 ? (
-                <p className="connections-status">
-                  Chưa có tài khoản nào.
-                </p>
-              ) : (
-                connections.map((connection) => (
-                  <Link
-                    className="connection-item"
-                    to={`/users/${connection._id}`}
-                    key={connection._id}
-                    onClick={handleCloseConnections}
-                  >
-                    <div className="connection-avatar">
-                      {connection.avatarUrl ? (
-                        <img
-                          src={connection.avatarUrl}
-                          alt={connection.fullName}
-                        />
-                      ) : (
-                        getFirstLetter(
-                          connection.fullName
-                        )
-                      )}
-                    </div>
-
-                    <div>
-                      <strong>{connection.fullName}</strong>
-
-                      <p>
-                        {connection.bio ||
-                          (connection.hometown
-                            ? `Đến từ ${connection.hometown}`
-                            : "Thành viên Travel Community")}
-                      </p>
-                    </div>
-                  </Link>
-                ))
-              )}
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <div style={styles.sectionHeading}>
+              <div>
+                <h2 style={styles.sectionTitle}>Thông tin cá nhân</h2>
+                <p style={styles.sectionDescription}>Những thông tin cơ bản trên hồ sơ của bạn</p>
+              </div>
             </div>
-          </section>
-        </div>
-      )}
+            <div style={styles.twoColumns}>
+              <label style={styles.field}>
+                <span>Họ và tên *</span>
+                <input
+                  style={styles.input}
+                  name="fullName"
+                  value={form.fullName}
+                  maxLength={100}
+                  required
+                  onChange={handleChange}
+                />
+              </label>
+
+              <label style={styles.field}>
+                <span>Email</span>
+                <input style={styles.inputDisabled} value={email} disabled />
+              </label>
+
+              <label style={styles.field}>
+                <span>Ngày sinh</span>
+                <input
+                  style={styles.input}
+                  type="date"
+                  name="dateOfBirth"
+                  value={form.dateOfBirth}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={handleChange}
+                />
+              </label>
+
+              <label style={styles.field}>
+                <span>Giới tính</span>
+                <select style={styles.input} name="gender" value={form.gender} onChange={handleChange}>
+                  <option value="">Chưa chọn</option>
+                  <option value="female">Nữ</option>
+                  <option value="male">Nam</option>
+                  <option value="other">Khác</option>
+                </select>
+              </label>
+
+              <label style={styles.field}>
+                <span>Quê quán</span>
+                <input
+                  style={styles.input}
+                  name="hometown"
+                  value={form.hometown}
+                  maxLength={100}
+                  placeholder="Ví dụ: Gia Lai"
+                  onChange={handleChange}
+                />
+              </label>
+
+              <label style={styles.field}>
+                <span>Phong cách du lịch</span>
+                <select style={styles.input} name="travelStyle" value={form.travelStyle} onChange={handleChange}>
+                  <option value="">Chưa chọn</option>
+                  <option value="relaxation">Nghỉ dưỡng</option>
+                  <option value="exploration">Khám phá</option>
+                  <option value="adventure">Phiêu lưu</option>
+                </select>
+              </label>
+
+              <label style={styles.field}>
+                <span>Mức ngân sách</span>
+                <select style={styles.input} name="budgetLevel" value={form.budgetLevel} onChange={handleChange}>
+                  <option value="">Chưa chọn</option>
+                  <option value="low">Tiết kiệm</option>
+                  <option value="medium">Trung bình</option>
+                  <option value="high">Thoải mái</option>
+                </select>
+              </label>
+
+            </div>
+
+            <div style={styles.sectionDivider} />
+
+            <div style={styles.sectionHeading}>
+              <div>
+                <h2 style={styles.sectionTitle}>Sở thích du lịch</h2>
+                <p style={styles.sectionDescription}>Chọn một hoặc nhiều sở thích phù hợp với bạn</p>
+              </div>
+            </div>
+
+            <div style={styles.interestList}>
+              {INTEREST_OPTIONS.map((interest) => {
+                const isSelected = form.travelInterests.includes(interest);
+
+                return (
+                  <button
+                    key={interest}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => handleToggleInterest(interest)}
+                    style={{
+                      ...styles.interestChip,
+                      ...(isSelected ? styles.interestChipSelected : {}),
+                    }}
+                  >
+                    <span>{interest}</span>
+                    {isSelected && <span style={styles.checkMark}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={styles.sectionDivider} />
+
+            <div style={styles.sectionHeading}>
+              <div>
+                <h2 style={styles.sectionTitle}>Giới thiệu về bạn</h2>
+                <p style={styles.sectionDescription}>Chia sẻ ngắn gọn để kết nối với những người cùng sở thích</p>
+              </div>
+            </div>
+
+            <label style={styles.field}>
+              <textarea
+                style={styles.textarea}
+                name="bio"
+                value={form.bio}
+                maxLength={500}
+                rows={5}
+                placeholder="Chia sẻ đôi chút về bạn..."
+                onChange={handleChange}
+              />
+              <small style={styles.hint}>{form.bio.length}/500 ký tự</small>
+            </label>
+
+            <div style={styles.actions}>
+              <Link to="/home" style={styles.cancelButton}>Hủy</Link>
+              <button
+                type="submit"
+                disabled={isSaving || isUploading}
+                style={{
+                  ...styles.saveButton,
+                  ...((isSaving || isUploading) ? styles.disabledButton : {}),
+                }}
+              >
+                {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+              </button>
+            </div>
+          </form>
+        </section>
+      </main>
     </div>
   );
 }
 
-export default PublicProfilePage;
+const styles: Record<string, CSSProperties> = {
+  page: { minHeight: "100vh", background: "linear-gradient(145deg, #f1f8f5 0%, #f8faf9 55%, #edf7f3 100%)", color: "#24332e", fontSize: 18 },
+  header: { minHeight: 64, padding: "0 clamp(20px, 3vw, 56px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, background: "#ffffff", borderBottom: "1px solid #dce7e3" },
+  brand: { color: "#087f5b", fontSize: 24, fontWeight: 800, textDecoration: "none" },
+  backLink: { color: "#3d5a50", fontSize: 18, fontWeight: 700, textDecoration: "none" },
+  container: { width: "calc(100% - clamp(28px, 3vw, 52px))", maxWidth: 1600, margin: "24px auto", paddingBottom: 32 },
+  card: { background: "rgba(255, 255, 255, 0.98)", border: "1px solid #dce8e4", borderRadius: 18, boxShadow: "0 12px 36px rgba(31, 73, 59, 0.08)", padding: "clamp(24px, 2.5vw, 40px)" },
+  titleBlock: { display: "flex", justifyContent: "flex-start", alignItems: "center", flexWrap: "wrap", gap: 22, padding: "4px 0 26px", borderBottom: "1px solid #e5eeeb" },
+  title: { margin: "0 0 7px", fontSize: "clamp(32px, 3vw, 40px)", letterSpacing: "-0.02em" },
+  subtitle: { margin: 0, color: "#6a7e77", fontSize: 18 },
+  avatarArea: { display: "flex", alignItems: "center", gap: 12 },
+  avatar: { width: 80, height: 80, borderRadius: "50%", overflow: "hidden", background: "#d7f1e8", color: "#087f5b", display: "grid", placeItems: "center", fontSize: 32, fontWeight: 800, border: "3px solid #bfe7da" },
+  avatarImage: { width: "100%", height: "100%", objectFit: "cover" },
+  avatarButton: { padding: "10px 15px", borderRadius: 8, background: "#e6f5ef", color: "#087f5b", fontSize: 17, fontWeight: 700, cursor: "pointer" },
+  hiddenInput: { display: "none" },
+  message: { marginTop: 22, padding: "12px 15px", borderRadius: 9, fontWeight: 600 },
+  success: { background: "#e8f7ef", color: "#167346", border: "1px solid #bde7cf" },
+  error: { background: "#fff0f0", color: "#b42318", border: "1px solid #f4c7c7" },
+  form: { display: "grid", gap: 20, marginTop: 26 },
+  sectionHeading: { display: "flex", alignItems: "stretch", paddingLeft: 14, borderLeft: "4px solid #0a8f65" },
+  sectionTitle: { margin: 0, color: "#203b32", fontSize: 24, letterSpacing: "-0.01em" },
+  sectionDescription: { margin: "5px 0 0", color: "#788a84", fontSize: 16 },
+  sectionDivider: { height: 1, background: "#e7efec", margin: "3px 0" },
+  twoColumns: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(400px, 100%), 1fr))", gap: 20 },
+  field: { display: "grid", gap: 9, color: "#304b42", fontSize: 18, fontWeight: 700 },
+  input: { width: "100%", boxSizing: "border-box", minHeight: 58, border: "1px solid #cbdad5", borderRadius: 10, padding: "13px 16px", background: "#ffffff", color: "#24332e", font: "inherit", fontSize: 18, outlineColor: "#22a77a" },
+  inputDisabled: { width: "100%", boxSizing: "border-box", minHeight: 58, border: "1px solid #dce5e2", borderRadius: 10, padding: "13px 16px", background: "#f1f4f3", color: "#71817b", font: "inherit", fontSize: 18 },
+  textarea: { width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid #cbdad5", borderRadius: 10, padding: "14px 16px", background: "#ffffff", color: "#24332e", font: "inherit", fontSize: 18, lineHeight: 1.6, outlineColor: "#22a77a" },
+  hint: { color: "#768982", fontWeight: 400 },
+  interestList: { display: "flex", flexWrap: "wrap", gap: 12 },
+  interestChip: { minHeight: 48, display: "inline-flex", alignItems: "center", gap: 9, padding: "10px 18px", borderRadius: 999, border: "1px solid #cdded8", background: "#f7faf9", color: "#38534a", font: "inherit", fontSize: 18, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" },
+  interestChipSelected: { borderColor: "#0a8f65", background: "#e0f4ed", color: "#067654", boxShadow: "0 3px 10px rgba(10, 143, 101, 0.10)" },
+  checkMark: { width: 20, height: 20, display: "grid", placeItems: "center", borderRadius: "50%", background: "#0a8f65", color: "#ffffff", fontSize: 12 },
+  actions: { display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, paddingTop: 4 },
+  cancelButton: { padding: "12px 20px", borderRadius: 9, color: "#40564e", background: "#edf2f0", fontSize: 18, fontWeight: 700, textDecoration: "none" },
+  saveButton: { border: 0, borderRadius: 9, padding: "13px 22px", background: "#0a8f65", color: "#ffffff", font: "inherit", fontSize: 18, fontWeight: 800, cursor: "pointer" },
+  disabledButton: { opacity: 0.6, cursor: "not-allowed" },
+  status: { minHeight: "100vh", display: "grid", placeItems: "center", background: "#f4f8f7", color: "#526b62", fontSize: 18 },
+};
+
+export default ProfilePage;
